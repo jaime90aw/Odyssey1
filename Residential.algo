@@ -1,0 +1,56 @@
+
+DEFINE COLUMN USING id, numberOfFloors, numberOfElevators
+    SET _id TO id
+    SET _numberOfFloors TO numberOfFloors
+    SET _numberOfElevators TO numberOfElevators
+    SET _callButton TO callButton
+    SET elevatorList TO EMPTY ARRAY 
+    // SET _floorButton TO floorButton
+
+    CALL initializeCallButtons USING _numberOfFloors
+
+    CALL initializeElevatorList USING _numberOfElevators
+
+	SEQUENCE initializeElevatorList USING _numberOfElevators
+		FOR _numberOfElevators
+			ADD NEW Elevator TO elevatorList
+		ENDFOR
+	ENDSEQUENCE
+    
+    // ADD UP and DOWN
+	SEQUENCE initializeCallButtons USING _numberOfFloors
+        SET numberOfButton TO _numberOfFloors * 2
+        FOR numberOfButton
+            ADD NEW callButton TO callButtonList
+        ENDFOR
+	ENDSEQUENCE
+
+    SEQUENCE findClosestElevator USING requestedFloorNumber, requestedDirection
+        SET deltaBetweenElevatorAndRequestedFloor TO 0
+        SET smallestDelta TO 1000
+        SET smallestElevatorId TO 0
+        SET INDEX TO 0
+        // FOR EACH THIS elevatorList
+        FOR currentElevator IN THIS elevatorList
+            SET deltaBetweenElevatorAndRequestedFloor TO currentElevator currentFloorNumber MINUS requestedFloorNumber
+            IF deltaBetweenElevatorAndRequestedFloor IS NEGATIVE THEN
+                SET AND MULTIPLY deltaBetweenElevatorAndRequestedFloor BY (-1);
+            ENDIF
+            IF deltaBetweenElevatorAndRequestedFloor < smallestDelta
+                SET smallestDelta TO deltaBetweenElevatorAndRequestedFloor
+                SET bestElevator TO currentElevator
+            ENDIF
+            IF deltaBetweenElevatorAndRequestedFloor IS EQUAL TO 0 THEN
+                return currentElevator;
+            ELSE IF deltaBetweenElevatorAndRequestedFloor IS SMALLER THAN smallestDelta THEN
+                IF requestedDirection IS EQUAL TO elevatorList[INDEX].currentDirection OR elevatorList[INDEX].currentDirection IS EQUAL TO "idle" THEN
+                    SET smallestDelta TO deltaBetweenElevatorAndRequestedFloor
+                    SET smallestElevatorId TO INDEX;
+                ENDIF
+            ENDIF
+            INCREMENT INDEX
+        ENDFOR
+        return elevatorList[smallestElevatorId];
+    ENDSEQUENCE
+
+ENDDEFINE

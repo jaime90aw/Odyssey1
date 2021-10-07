@@ -1,0 +1,29 @@
+SEQUENCE scanFloorsForActivatedCallButtons using elevatorList, columns, direction
+    FOR EACH columns
+        READ column.callButtonFloor IN floorRequestForElevator
+        IF floorRequestForElevator IS GREATER THAN -1 THEN
+            CALL findClosestElevator USING elevatorList, floorRequestForElevator, direction
+        END IF
+    ENDFOR
+ENDSEQUENCE
+
+SEQUENCE getDesiredFloor
+    Ask user which floor he would like to go
+    Read floorNumber desired by user
+    return floorNumber desired by user
+ENDSEQUENCE
+
+SEQUENCE determineElevatorColumn
+    CALL getDesiredFloor returning floor
+    IF floor is between B6 and B1
+        return A
+    ELSE IF floor is between 2 and 20
+        return B
+    ELSE IF floor is between 21 and 40
+        return C
+    ELSE IF floor is between 41 and 60
+        return D
+    END IF
+ENDSEQUENCE
+
+// Scenario 1

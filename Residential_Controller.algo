@@ -1,0 +1,133 @@
+// <---------------------------------------------- RESIDENTIAL ------------------------------------------------------>
+SEQUENCE 
+// 1. User activates callButton on one given floor : "UP" or "DOWN"
+// 2. All callButtons are scanned on all floors inside column
+// 3. Find the callButton that has been activated with its floorNumber (with timer if possible to set a priority list)
+// 4. Find the closest elevator to the callButton floorNumber that is either
+//    a) on idle mode or
+//    b) that is coming towards that floorNumber
+// 5. Give the order to that elevator to descend or ascend to that floorNumber
+// 6. Once that elevator has arrived, deactivate the callButton on that floorNumber 
+ENDSEQUENCE
+
+DEFINE COLUMN USING id, numberOfFloors, numberOfElevators
+    SET _id TO id
+    SET _numberOfFloors TO numberOfFloors
+    SET _numberOfElevators TO numberOfElevators
+    SET _callButton TO callButton
+    SET elevatorList TO EMPTY ARRAY 
+    // SET _floorButton TO floorButton
+
+    CALL initializeCallButtons USING _numberOfFloors
+
+    CALL initializeElevatorList USING _numberOfElevators
+
+	SEQUENCE initializeElevatorList USING _numberOfElevators
+		FOR _numberOfElevators
+			ADD NEW Elevator TO elevatorList
+		ENDFOR
+	ENDSEQUENCE
+    
+    // ADD UP and DOWN
+	SEQUENCE initializeCallButtons USING _numberOfFloors
+        SET numberOfButton TO _numberOfFloors * 2
+        FOR numberOfButton
+            ADD NEW callButton TO callButtonList
+        ENDFOR
+	ENDSEQUENCE
+
+    SEQUENCE findClosestElevator USING requestedFloorNumber, requestedDirection
+        SET deltaBetweenElevatorAndRequestedFloor TO 0
+        SET smallestDelta TO 0
+        SET smallestElevatorId TO 0
+        SET INDEX TO 0
+        // FOR EACH THIS elevatorList
+        FOR currentElevator IN THIS elevatorList
+            SET deltaBetweenElevatorAndRequestedFloor TO currentElevator currentFloorNumber MINUS requestedFloorNumber
+            IF deltaBetweenElevatorAndRequestedFloor IS NEGATIVE THEN
+                SET AND MULTIPLY deltaBetweenElevatorAndRequestedFloor BY (-1);
+            ENDIF
+            IF INDEX IS EQUAL TO 0 THEN
+                SET smallestDelta TO deltaBetweenElevatorAndRequestedFloor
+            ENDIF
+            IF deltaBetweenElevatorAndRequestedFloor IS EQUAL TO 0 THEN
+                return elevatorList[INDEX];
+            ELSE IF deltaBetweenElevatorAndRequestedFloor IS SMALLER THAN smallestDelta THEN
+                IF requestedDirection IS EQUAL TO elevatorList[INDEX].currentDirection OR elevatorList[INDEX].currentDirection IS EQUAL TO "idle" THEN
+                    SET smallestDelta TO deltaBetweenElevatorAndRequestedFloor
+                    SET smallestElevatorId TO INDEX;
+                ENDIF
+            ENDIF
+            INCREMENT INDEX
+        ENDFOR
+        return elevatorList[smallestElevatorId];
+    ENDSEQUENCE
+
+ENDDEFINE
+
+DEFINE ELEVATOR using _id, _currentFloorNumber, _door, _floorButton, _currentDirection, _status, _callButtonDirection
+    SET id TO _id
+    SET currentFloorNumber TO _currentFloorNumber
+    SET door TO _door
+    SET floorButton TO _floorButton
+    SET currentDirection TO _currentDirection // "UP" OR "DOWN" OR "IDLE"
+	SET door TO NEW Door
+    SET callButtonDirection TO _callButtonDirection
+
+
+    SEQUENCE initializeFloorButtons using floorRequestButton
+        ADD NEW floorButton TO floorButtonList
+    ENDSEQUENCE
+
+	SEQUENCE goToFloor USING floorNumber
+        WHILE floorNumber IS greater than floorRequestButton
+            DECREMENT floorNumber
+        ENDWHILE
+        CALL door toggleDoor
+	ENDSEQUENCE
+ENDDEFINE
+
+DEFINE DOOR USING _id, _status
+	SET id TO _id
+	SET status TO _status
+
+	SEQUENCE toggleDoor
+		IF status IS "closed" THEN
+			SET status TO "open"
+		ELSE
+			SET status TO "closed"
+        ENDIF
+	ENDSEQUENCE
+ENDDEFINE
+
+// BUTTON PERMITTING TO CALL AN ELEVATOR
+DEFINE CALL_BUTTON USING _id, _floorNumber
+    SET id TO _id
+    SET floorNumber TO _floorNumber
+ENDDEFINE
+
+DEFINE FLOOR_BUTTON, USING _id, _floorNumber
+    SET id TO _id
+    SET floorNumber TO _floorNumber
+ENDDEFINE
+
+SEQUENCE listOfElevatorsThatAreIdle USING elevatorList
+    SET listOfAvailableElevators TO EMPTY ARRAY
+    FOR EACH elevator in elevatorList
+        IF elevator.status IS EQUAL TO "idle" THEN
+            PUSH elevator to listOfAvailableElevators
+        ENDIF
+    ENDFOR
+    return listOfAvailableElevators
+ENDSEQUENCE
+
+SEQUENCE getElevatorInsideColumn
+    IF differenceOfFloorsFromA is greater or equal than differenceOfFloorsFromB
+        return elevatorA
+    END IF
+ENDSEQUENCE
+
+// MAIN
+// CALL getClosestElevator with floor number of user RETURNING elevatorToChoose
+SET C1 TO NEW COLUMN
+// IDLE est en 2e, priorite ceux qui sont dans la meme direction
